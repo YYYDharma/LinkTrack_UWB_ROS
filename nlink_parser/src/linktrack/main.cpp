@@ -33,10 +33,10 @@ int main(int argc, char **argv) {
     if (available_bytes) {
       serial.read(str_received, available_bytes);
       // printHexData(str_received);
-      auto now = std::chrono::system_clock::now(); // 获取当前时间点
-      auto duration = now.time_since_epoch(); // 获取时间点与 UNIX 时间原点之间的时间间隔
-      long long timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(); // 转换为毫秒级的时间戳
-      std::cout << "当前时间戳（毫秒）：" << timestamp << std::endl;
+      // auto now = std::chrono::system_clock::now(); // 获取当前时间点
+      // auto duration = now.time_since_epoch(); // 获取时间点与 UNIX 时间原点之间的时间间隔
+      // long long timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(); // 转换为毫秒级的时间戳
+      // std::cout << "当前时间戳（毫秒）：" << timestamp << std::endl;
       protocol_extraction.AddNewData(str_received);
     }
     ros::spinOnce();
