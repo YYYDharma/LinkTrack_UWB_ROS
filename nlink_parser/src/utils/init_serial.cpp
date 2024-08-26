@@ -18,7 +18,7 @@ void enumerate_ports() {
 }
 */
 
-void initSerial(serial::Serial *serial) {
+bool initSerial(serial::Serial *serial) {
   try {
     auto port_name =
         ros::param::param<std::string>("~port_name", "/dev/ttyUSB0");
@@ -31,7 +31,13 @@ void initSerial(serial::Serial *serial) {
     // without setTimeout,serial can not write any data
     // https://stackoverflow.com/questions/52048670/can-read-but-cannot-write-serial-ports-on-ubuntu-16-04/52051660?noredirect=1#comment91056825_52051660
     serial->setTimeout(timeout);
-    serial->open();
+    try {
+      serial->open();
+    } catch (serial::IOException& e) {
+      ROS_ERROR("Error open serial port, info: %s", e.what());
+      return false;
+    }
+    
 
     if (serial->isOpen()) {
       ROS_INFO("Serial port opened successfully, waiting for data.");
@@ -43,4 +49,5 @@ void initSerial(serial::Serial *serial) {
     ROS_ERROR("Unhandled Exception: %s", e.what());
     exit(EXIT_FAILURE);
   }
+  return true;
 }
