@@ -43,6 +43,7 @@ cd ..
 # step3 : 编译nlink_parser
 cp -r nlink_parser Linktrack_UWB_ws/src/
 cd Linktrack_UWB_ws
+rm -rf build/ devel/
 catkin_make
 
 read -p "Press any key to continue.."

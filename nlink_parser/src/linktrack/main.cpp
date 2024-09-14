@@ -7,6 +7,13 @@
 #include <iomanip>
 #include <iostream>
 #include <chrono>
+#include <thread>
+#include <vector>
+#include <memory>
+#include <atomic>
+std::vector<std::shared_ptr<serial::Serial>> serial_ports;    // 主线程维护的串口列表
+std::vector<std::shared_ptr<serial::Serial>> buffer_ports;  // 子线程的缓冲区
+std::atomic<bool> has_serial_changed(false);  // 标志是否有端口变化
 
 void printHexData(const std::string &data) {
   if (!data.empty()) {
@@ -19,46 +26,70 @@ void printHexData(const std::string &data) {
   }
 }
 
+// 检查串口端口的变化，更新 serial_ports
+void monitorPorts() {
+  while (ros::ok()) {
+    // 扫描当前的串口端口
+    auto new_serial_ports = initSerial();
+    if (new_serial_ports.empty()) {
+      ROS_WARN("No Linktrack UWB devices found, rescan after 1 second...");
+    }
+
+    if (new_serial_ports.size() != buffer_ports.size()) {
+      ROS_WARN("UWB device num change, current is %d", new_serial_ports.size());
+    }
+    // 更新缓冲区，并设置端口变化标志
+    buffer_ports = new_serial_ports;
+    has_serial_changed.store(true, std::memory_order_release);
+    ros::Duration(1.0).sleep();  // 每秒扫描一次
+  }
+  ROS_INFO("ROS stop.");
+}
+
+
 int main(int argc, char **argv) {
   ros::init(argc, argv, "linktrack_parser");
   ros::NodeHandle nh;
-  serial::Serial serial;
-  initSerial(&serial);
+  // 启动子线程监听端口变化
+  std::thread monitor_thread(monitorPorts);
+  
   NProtocolExtracter protocol_extraction;
-  linktrack::Init init(&protocol_extraction, &serial);
-  ros::Rate loop_rate(1000);
+  linktrack::Init init(&protocol_extraction, serial_ports);
+  ros::Rate loop_rate(1000); //HZ
   while (ros::ok()) {
-    if (!serial.isOpen()) {
-      if (!initSerial(&serial)) {
-        ros::Duration(1.0).sleep();
-        continue;
-      }
+    if (has_serial_changed.load(std::memory_order_acquire)) {
+      serial_ports = buffer_ports;  // 交换缓冲区与主线程使用的列表
     }
 
-    try {
-      auto available_bytes = serial.available();
-      std::string str_received;
-      if (available_bytes) {
-        serial.read(str_received, available_bytes);
-        // printHexData(str_received);
-        // auto now = std::chrono::system_clock::now(); // 获取当前时间点
-        // auto duration = now.time_since_epoch(); // 获取时间点与 UNIX 时间原点之间的时间间隔
-        // long long timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(); // 转换为毫秒级的时间戳
-        // std::cout << "当前时间戳（毫秒）：" << timestamp << std::endl;
-        protocol_extraction.AddNewData(str_received);
-      } else {
-        if (!serial.isOpen()) {
-          ROS_ERROR("serial port unconnected,retry to connect...");
+    // 遍历所有的串口和 Init 对象
+    // ROS_ERROR("Debug.........serial_ports.size: %d!", serial_ports.size());
+    for (size_t i = 0; i < serial_ports.size(); ++i) {
+      if (serial_ports[i] == nullptr) {
+        ROS_ERROR("Read serial port data error. serial is NULL!");
+        continue;
+      }
+      if (serial_ports[i]->isOpen()) {
+        try {
+          // 插入串口后，不会立即available
+          auto available_bytes = serial_ports[i]->available();
+          std::string str_received;
+          if (available_bytes) {
+            // ROS_ERROR("Debug.........read from port: %s!", serial_ports[i]->getPort().c_str());
+            serial_ports[i]->read(str_received, available_bytes);
+            protocol_extraction.AddNewData(str_received);
+          }
+        } catch (serial::IOException& e) {
+          ROS_ERROR("Read serial port data error: %s", e.what());
+          serial_ports[i]->close();  // 关闭出错的端口
         }
       }
-    } catch (serial::IOException& e) {
-      ROS_ERROR("read serial port data error, msg : %s", e.what());
-      serial.close();
-      ros::Duration(1.0).sleep();
     }
     
     ros::spinOnce();
     loop_rate.sleep();
   }
+
+  monitor_thread.join();
+
   return EXIT_SUCCESS;
 }

@@ -31,10 +31,10 @@ nlink_parser::LinktrackNodeframe4 g_msg_nodeframe4;
 nlink_parser::LinktrackNodeframe5 g_msg_nodeframe5;
 nlink_parser::LinktrackNodeframe6 g_msg_nodeframe6;
 
-serial::Serial *serial_;
+std::vector<std::shared_ptr<serial::Serial>> serial_ports;
 
-Init::Init(NProtocolExtracter *protocol_extraction, serial::Serial *serial) {
-  serial_ = serial;
+Init::Init(NProtocolExtracter *protocol_extraction, std::vector<std::shared_ptr<serial::Serial>> serials) {
+  serial_ports = serials; //todo: support std::vector<serial::Serial>
   initDataTransmission();
   initAnchorFrame0(protocol_extraction);
   initTagFrame0(protocol_extraction);
@@ -48,8 +48,11 @@ Init::Init(NProtocolExtracter *protocol_extraction, serial::Serial *serial) {
 }
 
 static void DTCallback(const std_msgs::String::ConstPtr &msg) {
-  if (serial_)
-    serial_->write(msg->data);
+  for (auto serial_ : serial_ports) {
+    if (serial_ != nullptr) {
+      serial_->write(msg->data);
+    }
+  }
 }
 
 void Init::initDataTransmission() {

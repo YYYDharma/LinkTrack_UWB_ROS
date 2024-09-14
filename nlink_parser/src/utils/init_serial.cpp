@@ -1,8 +1,8 @@
 #include "init_serial.h"
-
 #include <ros/ros.h>
-
 #include <string>
+#include <vector>
+#include <memory>
 /*
 void enumerate_ports() {
   auto devices_found = serial::list_ports();
@@ -17,37 +17,44 @@ void enumerate_ports() {
   test.clear();
 }
 */
+bool isLinkTrackUWBDevice(const serial::PortInfo &device) {
+  // 基于设备的hardware_id是否为Lintrack UWB设备
+  return device.hardware_id.find("VID:PID=10c4:ea60") != std::string::npos;
+}
 
-bool initSerial(serial::Serial *serial) {
-  try {
-    auto port_name =
-        ros::param::param<std::string>("~port_name", "/dev/ttyUSB0");
-    auto baud_rate = ros::param::param<int>("~baud_rate", 921600);
+std::vector<std::shared_ptr<serial::Serial>> initSerial() {
+  std::vector<std::shared_ptr<serial::Serial>> uwb_serials;
 
-    serial->setPort(port_name);
-    serial->setBaudrate(static_cast<uint32_t>(baud_rate));
-    ROS_INFO("try to open serial port with %s,%d", port_name.data(), baud_rate);
-    auto timeout = serial::Timeout::simpleTimeout(10);
-    // without setTimeout,serial can not write any data
-    // https://stackoverflow.com/questions/52048670/can-read-but-cannot-write-serial-ports-on-ubuntu-16-04/52051660?noredirect=1#comment91056825_52051660
-    serial->setTimeout(timeout);
-    try {
-      serial->open();
-    } catch (serial::IOException& e) {
-      ROS_ERROR("Error open serial port, info: %s", e.what());
-      return false;
+  // 持续扫描直到找到设备
+  auto devices_found = serial::list_ports();
+  bool uwb_found = false;
+
+  for (const auto &device : devices_found) {
+    if (device.port.find("/dev/ttyUSB") != std::string::npos) {
+      ROS_INFO("Checking port: %s", device.port.c_str());
+
+      if (isLinkTrackUWBDevice(device)) {
+        auto serial_ptr = std::make_shared<serial::Serial>();
+        serial_ptr->setPort(device.port);
+        serial_ptr->setBaudrate(921600); // refer to all device config
+        auto timeout = serial::Timeout::simpleTimeout(10);
+        serial_ptr->setTimeout(timeout);
+        
+        try {
+          serial_ptr->open();
+        } catch (serial::IOException& e) {
+          ROS_ERROR("Failed to open port: %s", e.what());
+          continue;
+        }
+
+        if (serial_ptr->isOpen()) {
+          ROS_INFO("UWB device found and opened at port: %s", device.port.c_str());
+          uwb_serials.push_back(serial_ptr);  // 将设备添加到列表
+          uwb_found = true;
+        }
+      }
     }
-    
-
-    if (serial->isOpen()) {
-      ROS_INFO("Serial port opened successfully, waiting for data.");
-    } else {
-      ROS_ERROR("Failed to open serial port, please check and retry.");
-      exit(EXIT_FAILURE);
-    }
-  } catch (const std::exception &e) {
-    ROS_ERROR("Unhandled Exception: %s", e.what());
-    exit(EXIT_FAILURE);
   }
-  return true;
+
+  return uwb_serials;  // 返回已找到的UWB设备列表
 }

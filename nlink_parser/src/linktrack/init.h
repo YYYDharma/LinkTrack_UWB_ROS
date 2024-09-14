@@ -3,6 +3,7 @@
 
 #include <ros/ros.h>
 #include <serial/serial.h>
+#include <vector>
 
 #include <unordered_map>
 
@@ -14,7 +15,7 @@ namespace linktrack {
 class Init {
 public:
   explicit Init(NProtocolExtracter *protocol_extraction,
-                serial::Serial *serial);
+                std::vector<std::shared_ptr<serial::Serial>> serial_ports);
 
 private:
   void initDataTransmission();

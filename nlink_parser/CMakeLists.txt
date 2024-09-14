@@ -130,59 +130,59 @@ target_link_libraries(${LINKTRACK_NAME}
 )
 add_dependencies(${LINKTRACK_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 
-set(LINKTRACK_RVIZ_NAME "linktrack_rviz_converter")
-add_executable(${LINKTRACK_RVIZ_NAME}
-    src/linktrack/main_rviz_converter.cpp
-)
-target_link_libraries(${LINKTRACK_RVIZ_NAME}
-    ${nutils}
-)
-add_dependencies(${LINKTRACK_RVIZ_NAME} ${PROJECT_NAME}_generate_messages_cpp)
+# set(LINKTRACK_RVIZ_NAME "linktrack_rviz_converter")
+# add_executable(${LINKTRACK_RVIZ_NAME}
+#     src/linktrack/main_rviz_converter.cpp
+# )
+# target_link_libraries(${LINKTRACK_RVIZ_NAME}
+#     ${nutils}
+# )
+# add_dependencies(${LINKTRACK_RVIZ_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 
-set(TOFSENSE_NAME "tofsense")
-add_executable(${TOFSENSE_NAME}
-    src/tofsense/init.cpp
-    src/tofsense/main.cpp
-)
-target_link_libraries(${TOFSENSE_NAME}
+# set(TOFSENSE_NAME "tofsense")
+# add_executable(${TOFSENSE_NAME}
+#     src/tofsense/init.cpp
+#     src/tofsense/main.cpp
+# )
+# target_link_libraries(${TOFSENSE_NAME}
 
-    # ${catkin_LIBRARIES}
-    ${nutils}
-)
-add_dependencies(${TOFSENSE_NAME} ${PROJECT_NAME}_generate_messages_cpp)
+#     # ${catkin_LIBRARIES}
+#     ${nutils}
+# )
+# add_dependencies(${TOFSENSE_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 
-set(EXE_NAME "tofsensem")
-add_executable(${EXE_NAME}
-    src/tofsensem/init.cpp
-    src/tofsensem/main.cpp
-)
-target_link_libraries(${EXE_NAME}
-    ${nutils}
-)
-add_dependencies(${EXE_NAME} ${PROJECT_NAME}_generate_messages_cpp)
+# set(EXE_NAME "tofsensem")
+# add_executable(${EXE_NAME}
+#     src/tofsensem/init.cpp
+#     src/tofsensem/main.cpp
+# )
+# target_link_libraries(${EXE_NAME}
+#     ${nutils}
+# )
+# add_dependencies(${EXE_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 
-set(EXE_NAME "linktrack_aoa")
-add_executable(${EXE_NAME}
-    src/linktrack_aoa/init.cpp
-    src/linktrack_aoa/main.cpp
-    src/linktrack/protocols.cpp
-)
-target_link_libraries(${EXE_NAME}
+# set(EXE_NAME "linktrack_aoa")
+# add_executable(${EXE_NAME}
+#     src/linktrack_aoa/init.cpp
+#     src/linktrack_aoa/main.cpp
+#     src/linktrack/protocols.cpp
+# )
+# target_link_libraries(${EXE_NAME}
 
-    # ${catkin_LIBRARIES}
-    ${nutils}
-)
-add_dependencies(${EXE_NAME} ${PROJECT_NAME}_generate_messages_cpp)
+#     # ${catkin_LIBRARIES}
+#     ${nutils}
+# )
+# add_dependencies(${EXE_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 
-set(EXE_NAME "iot")
-add_executable(${EXE_NAME}
-    src/iot/init.cpp
-    src/iot/main.cpp
-)
-target_link_libraries(${EXE_NAME}
-    ${nutils}
-)
-add_dependencies(${EXE_NAME} ${PROJECT_NAME}_generate_messages_cpp)
+# set(EXE_NAME "iot")
+# add_executable(${EXE_NAME}
+#     src/iot/init.cpp
+#     src/iot/main.cpp
+# )
+# target_link_libraries(${EXE_NAME}
+#     ${nutils}
+# )
+# add_dependencies(${EXE_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 
 # ############
 # # Testing ##
