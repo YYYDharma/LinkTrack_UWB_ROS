@@ -31,6 +31,7 @@ source ~/.bashrc
 
 # step2 : 创建工作空间
 cd ..
+rm -rf Linktrack_UWB_ws
 mkdir -p Linktrack_UWB_ws/src
 cd  Linktrack_UWB_ws/src
 catkin_init_workspace

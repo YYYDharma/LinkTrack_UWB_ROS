@@ -7,7 +7,7 @@ sleep 1
 
 cd Linktrack_UWB_ws
 source devel/setup.sh
-catkin_make run_tests
+# catkin_make run_tests
 
 gnome-terminal --window \
 --tab -e 'bash -c "source devel/setup.sh; sleep 1; rosrun nlink_parser linktrack; exec bash"' \

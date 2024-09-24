@@ -11,9 +11,11 @@
 #include <vector>
 #include <memory>
 #include <atomic>
+#include <mutex>
 std::vector<std::shared_ptr<serial::Serial>> serial_ports;    // 主线程维护的串口列表
 std::vector<std::shared_ptr<serial::Serial>> buffer_ports;  // 子线程的缓冲区
-std::atomic<bool> has_serial_changed(false);  // 标志是否有端口变化
+bool has_serial_changed = false;  // 标志是否有端口变化
+std::mutex serial_ports_lock;
 
 void printHexData(const std::string &data) {
   if (!data.empty()) {
@@ -37,10 +39,11 @@ void monitorPorts() {
 
     if (new_serial_ports.size() != buffer_ports.size()) {
       ROS_WARN("UWB device num change, current is %d", new_serial_ports.size());
+      // 更新缓冲区，并设置端口变化标志
+      std::lock_guard<std::mutex> lock(serial_ports_lock);
+      buffer_ports = new_serial_ports;
+      has_serial_changed = true;
     }
-    // 更新缓冲区，并设置端口变化标志
-    buffer_ports = new_serial_ports;
-    has_serial_changed.store(true, std::memory_order_release);
     ros::Duration(1.0).sleep();  // 每秒扫描一次
   }
   ROS_INFO("ROS stop.");
@@ -55,18 +58,37 @@ int main(int argc, char **argv) {
   
   NProtocolExtracter protocol_extraction;
   linktrack::Init init(&protocol_extraction, serial_ports);
-  ros::Rate loop_rate(1000); //HZ
+  ros::Rate loop_rate(100); //HZ
   while (ros::ok()) {
-    if (has_serial_changed.load(std::memory_order_acquire)) {
-      serial_ports = buffer_ports;  // 交换缓冲区与主线程使用的列表
+    {
+      std::lock_guard<std::mutex> lock(serial_ports_lock);
+      if (has_serial_changed) {
+        for (auto port : serial_ports) {
+          try {
+            port->close();
+          } catch (serial::IOException& e) {
+            ROS_ERROR("Failed to close port: %s", e.what());
+            continue;
+          }
+        }
+        serial_ports = buffer_ports;  // 交换缓冲区与主线程使用的列表
+        has_serial_changed = false;
+      }
     }
 
-    // 遍历所有的串口和 Init 对象
     // ROS_ERROR("Debug.........serial_ports.size: %d!", serial_ports.size());
     for (size_t i = 0; i < serial_ports.size(); ++i) {
       if (serial_ports[i] == nullptr) {
         ROS_ERROR("Read serial port data error. serial is NULL!");
         continue;
+      }
+      if (!serial_ports[i]->isOpen()) {
+        try {
+          serial_ports[i]->open();
+        } catch (serial::IOException& e) {
+          ROS_ERROR("Failed to open port: %s", e.what());
+          continue;
+        }
       }
       if (serial_ports[i]->isOpen()) {
         try {

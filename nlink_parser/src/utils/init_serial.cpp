@@ -27,31 +27,18 @@ std::vector<std::shared_ptr<serial::Serial>> initSerial() {
 
   // 持续扫描直到找到设备
   auto devices_found = serial::list_ports();
-  bool uwb_found = false;
 
   for (const auto &device : devices_found) {
     if (device.port.find("/dev/ttyUSB") != std::string::npos) {
-      ROS_INFO("Checking port: %s", device.port.c_str());
 
       if (isLinkTrackUWBDevice(device)) {
+        ROS_INFO("Checking port: %s, found LinkTrack UWB device", device.port.c_str());
         auto serial_ptr = std::make_shared<serial::Serial>();
         serial_ptr->setPort(device.port);
         serial_ptr->setBaudrate(921600); // refer to all device config
         auto timeout = serial::Timeout::simpleTimeout(10);
         serial_ptr->setTimeout(timeout);
-        
-        try {
-          serial_ptr->open();
-        } catch (serial::IOException& e) {
-          ROS_ERROR("Failed to open port: %s", e.what());
-          continue;
-        }
-
-        if (serial_ptr->isOpen()) {
-          ROS_INFO("UWB device found and opened at port: %s", device.port.c_str());
-          uwb_serials.push_back(serial_ptr);  // 将设备添加到列表
-          uwb_found = true;
-        }
+        uwb_serials.push_back(serial_ptr);  // 将设备添加到列表
       }
     }
   }
